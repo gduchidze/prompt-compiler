@@ -1,177 +1,247 @@
-# Prompt Compiler
+# promptc
 
 A compiler for LLM prompts — lex, parse, optimize, and generate model-specific output.
 
 Treats prompts like source code: eliminates redundancy, resolves contradictions, reorders for attention, and emits optimized formats for Claude, GPT, Mistral, and Llama.
 
+## Architecture
+
+```
+[TypeScript / Hono]          <- API + CLI + LLM eval + reports
+         |
+[promptc-core (Rust/napi-rs)] <- parser + AST + 7 optimizer passes + codegen
+         |
+[LLM APIs (Gemini)]          <- eval + adaptive feedback loop
+```
+
+The Rust core handles all compute-heavy work (lexing, parsing, optimization, codegen, safety checks). The TypeScript layer provides the CLI, HTTP API, LLM-as-judge evaluation, and npm distribution.
+
 ## The #1 Rule: Never Make It Worse
 
-The compiler includes a **safety net** that checks semantic similarity between the original and compiled prompts. If the compiled prompt drifts too far from the original intent, it can warn, fall back to the original, or abort:
-
-```bash
-# Warn on drift (default)
-prompt-compiler prompt.txt --safety-action warn
-
-# Fall back to original if drift detected
-prompt-compiler prompt.txt --safety-action fallback --safety-threshold 0.85
-
-# Abort with error on drift
-prompt-compiler prompt.txt --safety-action abort
-```
+The compiler includes a **safety net** that checks semantic similarity between the original and compiled prompts. If the compiled prompt drifts too far from the original intent, it can warn, fall back to the original, or abort.
 
 ## Pipeline
 
 ```
 Raw prompt string
-       │
-  ┌────▼────┐
-  │  Lexer  │  regex rules → token stream
-  └────┬────┘
-  ┌────▼────┐
-  │ Parser  │  tokens → PromptAST (with RawNode fallback for unclassifiable text)
-  └────┬────┘
-  ┌────▼──────────┐
-  │   Optimizer   │  7 passes over the AST
-  │               │
-  │  1. DeadInstructionElimination   — remove semantically redundant instructions
-  │  2. ContradictionResolver        — detect and resolve conflicting instructions
-  │  3. AttentionAwareReorder        — critical content first (lost-in-middle fix)
-  │  4. ContextRelevancePruning      — drop irrelevant context blocks
-  │  5. ExampleDiversitySelection    — keep maximally diverse examples
-  │  6. RedundancyElimination        — exact text deduplication
-  │  7. NegativeToPositive           — "don't use jargon" → "use plain language"
-  └────┬──────────┘
-  ┌────▼──────────┐
-  │  Safety Net   │  semantic similarity check — never make it worse
-  └────┬──────────┘
-  ┌────▼──────────┐
-  │   Codegen     │  AST → model-specific format
-  │               │
-  │  Claude  → XML tags (<persona>, <instructions>, <examples>)
-  │  GPT     → Markdown headers + bold critical rules
-  │  Mistral → [INST] wrapper + compact bullets
-  │  Llama   → special tokens + Step N: markers
-  └────┬──────────┘
-  ┌────▼──────────────┐
-  │ Quality Estimator │  token count, clarity, structure, compatibility scores
-  └───────────────────┘
+       |
+  +----------+
+  |  Lexer   |  regex rules -> token stream
+  +----+-----+
+  +----v-----+
+  | Parser   |  tokens -> PromptAST (with RawNode fallback)
+  +----+-----+
+  +----v-----------+
+  |   Optimizer    |  7 passes over the AST
+  |                |
+  |  1. DeadInstructionElimination   - remove semantically redundant instructions
+  |  2. ContradictionResolver        - detect and resolve conflicting instructions
+  |  3. AttentionAwareReorder        - critical content first (lost-in-middle fix)
+  |  4. ContextRelevancePruning      - drop irrelevant context blocks
+  |  5. ExampleDiversitySelection    - keep maximally diverse examples
+  |  6. RedundancyElimination        - exact text deduplication
+  |  7. NegativeToPositive           - "don't use jargon" -> "use plain language"
+  +----+-----------+
+  +----v-----------+
+  |  Safety Net    |  semantic similarity check - never make it worse
+  +----+-----------+
+  +----v-----------+
+  |   Codegen      |  AST -> model-specific format
+  |                |
+  |  Claude  -> XML tags (<persona>, <instructions>, <examples>)
+  |  GPT     -> Markdown headers + bold critical rules
+  |  Mistral -> [INST] wrapper + compact bullets
+  |  Llama   -> special tokens + Step N: markers
+  +----+-----------+
+  +----v-----------------+
+  | Quality Estimator    |  token count, clarity, structure, compatibility scores
+  +----------------------+
 ```
 
 ## Installation
 
 ```bash
-# Rust
-cargo install --path .
+# npm (includes prebuilt native binaries)
+npm install promptc
 
-# Python (via maturin — no Rust needed for end users)
-pip install promptc
+# CLI
+npx promptc compile prompt.txt --target claude
+
+# Rust (core only)
+cargo install --path crates/promptc-core --features cli
 ```
 
-Or build from source:
+Build from source:
 
 ```bash
-cargo build --release
+# Build everything (Rust + TypeScript)
+npm run build
+
+# Rust only
+cargo build --workspace --release
 ```
 
 ## Usage
 
-### Basic compilation
+### CLI
 
 ```bash
 # Compile a prompt for Claude (default)
-prompt-compiler prompt.txt -t claude -O2
+npx promptc compile prompt.txt -t claude -O 2
 
 # Compile for GPT with output file
-prompt-compiler prompt.txt -t gpt -o optimized.txt
+npx promptc compile prompt.txt -t gpt -o optimized.txt
 
-# Compile for Mistral
-prompt-compiler prompt.txt -t mistral
+# Full JSON output with metrics
+npx promptc compile prompt.txt --json
 
-# Read from stdin
-echo "## Instructions\n- Be concise.\n- Do not use jargon." | prompt-compiler - -t claude
+# Lint for GPT-isms
+npx promptc lint prompt.txt -t claude
+
+# Parse to AST (JSON)
+npx promptc parse prompt.txt
+
+# Port from one model format to another
+npx promptc port prompt.txt --from gpt --to claude
+
+# Evaluate with LLM-as-judge (requires GEMINI_API_KEY)
+npx promptc eval prompt.txt -t claude --suite eval-tasks.json
 ```
 
 ### Optimization levels
 
 ```bash
--O0    # No optimization — just parse and codegen
--O1    # Safe passes only (context pruning, redundancy, negative-to-positive)
--O2    # All 7 passes (default)
+-O 0    # No optimization - just parse and codegen
+-O 1    # Safe passes only (context pruning, redundancy, negative-to-positive)
+-O 2    # All 7 passes (default)
 ```
 
-### GPT-ism detection
-
-Check a prompt for Claude-incompatible patterns without compiling:
+### Legacy Rust CLI
 
 ```bash
-prompt-compiler prompt.txt --check
+prompt-compiler prompt.txt -t claude -O2
+prompt-compiler prompt.txt --check          # GPT-ism detection only
+prompt-compiler prompt.txt --report         # Quality report to stderr
+prompt-compiler prompt.txt --emit-ast       # AST as JSON
+prompt-compiler prompt.txt --safety-action fallback --safety-threshold 0.85
 ```
 
-Example output:
-
-```
-Found 3 GPT-ism(s):
-
-  [Warning] 'let's think step by step'
-    → Use <thinking> tags or 'Think through this step-by-step:' for Claude
-
-  [Warning] 'As an AI language model'
-    → Remove entirely — Claude doesn't need this preamble
-
-  [Info] '**bold**'
-    → Consider using <important>...</important> XML tags for Claude
-```
-
-### Safety net
-
-The compiler checks that the compiled output doesn't drift semantically from the original:
+### API Server
 
 ```bash
-# Warn on semantic drift (default)
-prompt-compiler prompt.txt --safety-action warn --safety-threshold 0.85
-
-# Fall back to original uncompiled prompt on drift
-prompt-compiler prompt.txt --safety-action fallback
-
-# Abort with error
-prompt-compiler prompt.txt --safety-action abort
+npx ts-node src/server.ts
+# or after build:
+node dist/server.js
 ```
 
-### Quality report
-
-```bash
-prompt-compiler prompt.txt -t claude --report
-```
-
-Prints optimized prompt to stdout and a quality report to stderr:
+Endpoints:
 
 ```
-=== Quality Report ===
-Tokens: 45 -> 38 (15.6% reduction)
-Instruction clarity:    0.78
-Structural improvement: 0.83
-Model compatibility:    1.00
-Overall delta:          0.61
-
-Optimizer changes: 3
-  - Removed: 'Always cite all sources.' (Redundant with 'You must cite all sources.')
-  - Rewritten: 'Do not use jargon.' -> 'Use plain, accessible language.'
-Compiled: 51 tokens (~, estimated ±5% — Anthropic tokenizer is not public)
+POST /compile  { source, target?, optLevel? }  -> CompileResult
+POST /lint     { source, target? }             -> LintIssue[]
+POST /parse    { source }                      -> AST JSON
+POST /eval     { source, target?, tasks }      -> CompileAndEvalResult
+GET  /health                                   -> { status: "ok" }
 ```
 
-Token counts are honest — approximate counts are clearly marked per target model.
+## Library Usage
 
-### AST inspection
+### TypeScript / Node.js
 
-```bash
-# Emit parsed AST as JSON (before optimization)
-prompt-compiler prompt.txt --emit-ast
+```typescript
+import { PromptCompiler } from 'promptc';
 
-# Emit optimized AST as JSON
-prompt-compiler prompt.txt --emit-optimized-ast
+const compiler = new PromptCompiler();
+
+// Compile
+const result = compiler.compile(source, 'claude', 2);
+console.log(result.output);
+console.log(`${result.tokenReductionPct}% token reduction`);
+console.log(`Quality delta: ${result.qualityDelta}`);
+
+// Lint
+const issues = compiler.lint(source, 'claude');
+for (const issue of issues) {
+  console.log(`${issue.severity}: ${issue.found} -> ${issue.suggestion}`);
+}
+
+// Parse to AST
+const ast = compiler.parse(source);
+
+// Compile + evaluate with Gemini
+const compiler = new PromptCompiler({ apiKey: process.env.GEMINI_API_KEY });
+const evalResult = await compiler.compileAndEval(source, 'claude', [
+  { name: 'clarity', input: 'Explain quantum computing', rubric: 'Clear and concise explanation' },
+]);
+console.log(`Original: ${evalResult.originalScore}, Compiled: ${evalResult.compiledScore}`);
 ```
 
-## Prompt format
+### Adaptive compilation
+
+```typescript
+import { adaptiveCompile } from 'promptc';
+
+// Tries aggressive optimization first, backs off if quality drops
+const result = await adaptiveCompile(source, 'claude', tasks, {
+  maxIterations: 3,
+  apiKey: process.env.GEMINI_API_KEY,
+});
+console.log(`Best output at opt level ${result.optLevel}, score: ${result.score}`);
+```
+
+### Rust
+
+```rust
+use promptc_core::{compile, ModelTarget};
+
+let source = "## Instructions\n- Be concise.\n- Do not use jargon.";
+let output = compile(source, ModelTarget::Claude, 2).unwrap();
+println!("{output}");
+```
+
+With safety check:
+
+```rust
+use promptc_core::{compile_with_safety, ModelTarget, SafetyCheck, SafetyAction};
+
+let safety = SafetyCheck::new(0.85, SafetyAction::Fallback);
+let result = compile_with_safety(source, ModelTarget::Claude, 2, safety).unwrap();
+
+if result.used_fallback {
+    eprintln!("Safety net triggered - using original prompt");
+}
+println!("{}", result.text);
+```
+
+Fine-grained control:
+
+```rust
+use promptc_core::{lexer, parser, Optimizer, OptimizerOptions, ModelTarget, codegen};
+
+let tokens = lexer::tokenize(source).unwrap();
+let ast = parser::parse(tokens, source).unwrap();
+
+let optimizer = Optimizer::new(ModelTarget::Claude, OptimizerOptions::default());
+let result = optimizer.run(ast);
+
+let gen = codegen::for_target(ModelTarget::Claude);
+let output = gen.render(&result.ast);
+```
+
+### Python
+
+```python
+from promptc import compile, check_gptisms
+
+compiled = compile("## Instructions\n- Be concise.", target="claude", opt_level=2)
+print(compiled)
+
+findings = check_gptisms("Let's think step by step.")
+for found, suggestion, severity in findings:
+    print(f"[{severity}] {found} -> {suggestion}")
+```
+
+## Prompt Format
 
 The compiler recognizes section headers to structure the AST:
 
@@ -202,63 +272,41 @@ Headers can use `## Title`, `[TITLE]`, or bare keywords like `INSTRUCTIONS:`. If
 
 **Anything the parser can't classify goes into `RawNode` and passes through unchanged.** Silent failure is fine. Silent corruption is not.
 
-## Library usage
+## Project Structure
 
-### Rust
-
-```rust
-use prompt_compiler::{compile, ModelTarget};
-
-let source = "## Instructions\n- Be concise.\n- Do not use jargon.";
-let output = compile(source, ModelTarget::Claude, 2).unwrap();
-println!("{output}");
+```
+promptc/
+  Cargo.toml                    # Workspace manifest
+  package.json                  # npm package config
+  tsconfig.json
+  crates/
+    promptc-core/               # Rust engine
+      src/
+        lib.rs                  # Public API + napi bindings
+        lexer/                  # Tokenization
+        parser/                 # AST construction
+        optimizer/              # 7-pass optimization pipeline
+        codegen/                # Claude, GPT, Mistral, Llama output
+        embedder/               # TF-IDF + optional fastembed
+        analysis/               # GPT-ism detection + quality metrics
+        safety.rs               # Semantic drift detection
+      tests/
+        integration_test.rs
+  src/                          # TypeScript
+    index.ts                    # Public exports
+    compiler.ts                 # PromptCompiler class
+    cli.ts                      # Commander CLI
+    server.ts                   # Hono API server
+    eval.ts                     # LLM-as-judge + adaptive loop
+    report.ts                   # HTML report generation
+    types.ts                    # TypeScript interfaces
+    native.ts                   # napi-rs bridge
+  benchmarks/
+    prompts/                    # 10 real-world prompts
+    tasks/                      # Eval task definitions
 ```
 
-With safety check:
-
-```rust
-use prompt_compiler::{compile_with_safety, ModelTarget, SafetyCheck, SafetyAction};
-
-let safety = SafetyCheck::new(0.85, SafetyAction::Fallback);
-let result = compile_with_safety(source, ModelTarget::Claude, 2, safety).unwrap();
-
-if result.used_fallback {
-    eprintln!("Safety net triggered — using original prompt");
-}
-println!("{}", result.text);
-```
-
-For fine-grained control:
-
-```rust
-use prompt_compiler::{lexer, parser, Optimizer, OptimizerOptions, ModelTarget, codegen};
-
-let tokens = lexer::tokenize(source).unwrap();
-let ast = parser::parse(tokens, source).unwrap();
-
-let optimizer = Optimizer::new(ModelTarget::Claude, OptimizerOptions::default());
-let result = optimizer.run(ast);
-
-let gen = codegen::for_target(ModelTarget::Claude);
-let output = gen.render(&result.ast);
-```
-
-### Python
-
-```python
-from promptc import compile, check_gptisms
-
-# Compile a prompt for Claude
-compiled = compile("## Instructions\n- Be concise.", target="claude", opt_level=2)
-print(compiled)
-
-# Check for GPT-isms
-findings = check_gptisms("Let's think step by step.")
-for found, suggestion, severity in findings:
-    print(f"[{severity}] {found} -> {suggestion}")
-```
-
-## Embedding options
+## Embedding Options
 
 The default embedder uses **TF-IDF** (pure Rust, no dependencies, offline).
 
@@ -268,45 +316,40 @@ For higher accuracy, enable **fastembed-rs** (bundles all-MiniLM-L6-v2, 22MB ONN
 cargo build --features fastembed
 ```
 
-## Benchmarks
+## How It Works
 
-Run the benchmark suite against 10 real-world prompts:
-
-```bash
-./benchmarks/run_bench.sh --target claude
-```
-
-Results are saved to `benchmarks/results/latest.json`.
-
-## How it works
-
-All analysis is **rule-based and local** — no LLM calls, no API keys, no network access:
+All analysis is **rule-based and local** — no LLM calls required for compilation:
 
 - **Semantic similarity** uses TF-IDF vectors with cosine similarity (or fastembed-rs for neural embeddings)
 - **Polarity detection** uses regex matching for negation words
 - **Priority classification** uses keyword tier lookups
-- **Negative-to-positive rewriting** uses a static regex → replacement table
+- **Negative-to-positive rewriting** uses a static regex-to-replacement table
 - **GPT-ism detection** uses 10 hardcoded regex patterns
 - **Safety net** compares embeddings of original vs compiled prompt
 
-This makes it fast, deterministic, and offline.
+The optional eval loop uses **Gemini** as an LLM-as-judge for quality scoring.
 
 ## CI/CD
 
 GitHub Actions runs on every push and PR:
-- `cargo test --all` — all unit + integration tests
-- `cargo clippy -- -D warnings` — lint
-- `cargo fmt --check` — formatting
+- `cargo test --workspace` — all unit + integration tests
+- `cargo clippy --workspace -- -D warnings` — lint
+- `cargo fmt --all --check` — formatting
+- Node.js build verification
 
-Release workflow builds Python wheels for all platforms via maturin.
+Release workflow cross-compiles native binaries for 6 platforms and publishes to npm.
 
 ## Tests
 
 ```bash
-cargo test
+# Rust tests
+cargo test --workspace
+
+# TypeScript tests
+npm test
 ```
 
-72 tests: 54 unit tests covering every module + 18 integration tests for the full pipeline.
+72 Rust tests: 54 unit tests covering every module + 18 integration tests for the full pipeline.
 
 ## License
 
