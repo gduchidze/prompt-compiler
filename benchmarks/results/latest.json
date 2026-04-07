@@ -1,0 +1,10 @@
+{
+  "target": "claude",
+  "opt_level": 2,
+  "total_prompts": 10,
+  "improved": 3,
+  "neutral": 0,
+  "degraded": 7,
+  "total_before_tokens": 2460,
+  "total_after_tokens": 2534
+}

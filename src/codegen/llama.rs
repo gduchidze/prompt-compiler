@@ -58,6 +58,12 @@ impl CodegenTarget for LlamaCodegen {
             writeln!(out, "Output format: {}", fmt.text).unwrap();
         }
 
+        // Raw nodes — pass through unchanged
+        for raw in &ast.raw {
+            writeln!(out).unwrap();
+            writeln!(out, "{}", raw.text).unwrap();
+        }
+
         writeln!(out, "<|end|>").unwrap();
         writeln!(out, "<|user|>").unwrap();
 

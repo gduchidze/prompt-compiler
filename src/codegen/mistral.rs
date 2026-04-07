@@ -51,6 +51,12 @@ impl CodegenTarget for MistralCodegen {
             writeln!(out, "{}", fmt.text).unwrap();
         }
 
+        // Raw nodes — pass through unchanged
+        for raw in &ast.raw {
+            writeln!(out).unwrap();
+            writeln!(out, "{}", raw.text).unwrap();
+        }
+
         writeln!(out, "[/INST]").unwrap();
 
         out

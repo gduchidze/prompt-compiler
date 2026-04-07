@@ -1,6 +1,10 @@
+pub mod fastembed;
 pub mod tfidf;
 
 pub use tfidf::TfIdfEmbedder;
+
+#[cfg(feature = "fastembed")]
+pub use self::fastembed::FastEmbedder;
 
 pub trait Embedder: Send + Sync {
     fn embed(&self, text: &str) -> Vec<f32>;

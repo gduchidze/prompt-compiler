@@ -112,6 +112,12 @@ impl CodegenTarget for ClaudeCodegen {
             writeln!(out, "</output_format>").unwrap();
         }
 
+        // Raw nodes — pass through unchanged
+        for raw in &ast.raw {
+            writeln!(out).unwrap();
+            writeln!(out, "{}", raw.text).unwrap();
+        }
+
         out
     }
 }

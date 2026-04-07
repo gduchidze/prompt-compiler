@@ -105,6 +105,16 @@ pub struct AstMetadata {
     pub parse_warnings: Vec<Warning>,
 }
 
+/// Unclassifiable text — passes through unchanged. Silent failure is fine;
+/// silent corruption is not.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RawNode {
+    pub id: NodeId,
+    pub text: String,
+    pub span: TextSpan,
+    pub token_count: usize,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PromptAst {
     pub persona: Option<PersonaNode>,
@@ -113,6 +123,7 @@ pub struct PromptAst {
     pub context: Vec<ContextNode>,
     pub examples: Vec<ExampleNode>,
     pub format_spec: Option<FormatNode>,
+    pub raw: Vec<RawNode>,
     pub metadata: AstMetadata,
 }
 
@@ -125,6 +136,7 @@ impl PromptAst {
             context: Vec::new(),
             examples: Vec::new(),
             format_spec: None,
+            raw: Vec::new(),
             metadata: AstMetadata {
                 total_tokens: 0,
                 source_hash,

@@ -301,27 +301,20 @@ pub fn parse(tokens: Vec<Token>, source: &str) -> Result<PromptAst, CompilerErro
                 });
             }
             SectionKind::Unknown => {
-                // Treat as instructions
+                // Pass through as RawNode — silent failure is fine,
+                // silent corruption is not
                 for token in section_tokens {
                     let text = clean_text(&token.text);
                     if text.is_empty() {
                         continue;
                     }
-                    let (verb, object) = extract_verb_object(&text);
-                    let polarity = detect_polarity(&text);
-                    let priority = detect_priority(&text);
                     let token_count = state.counter.count(&text);
 
-                    ast.instructions.push(InstructionNode {
+                    ast.raw.push(RawNode {
                         id: state.alloc_id(),
                         text,
-                        verb,
-                        object,
-                        polarity,
-                        priority,
                         span: token.span,
                         token_count,
-                        embedding: None,
                     });
                 }
             }
@@ -333,6 +326,7 @@ pub fn parse(tokens: Vec<Token>, source: &str) -> Result<PromptAst, CompilerErro
         + ast.constraints.iter().map(|n| n.token_count).sum::<usize>()
         + ast.context.iter().map(|n| n.token_count).sum::<usize>()
         + ast.examples.iter().map(|n| n.token_count).sum::<usize>()
+        + ast.raw.iter().map(|n| n.token_count).sum::<usize>()
         + ast.persona.as_ref().map(|p| state.counter.count(&p.text)).unwrap_or(0)
         + ast.format_spec.as_ref().map(|f| state.counter.count(&f.text)).unwrap_or(0);
 

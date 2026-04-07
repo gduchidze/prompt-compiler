@@ -77,6 +77,12 @@ impl CodegenTarget for GptCodegen {
             writeln!(out, "{}", fmt.text).unwrap();
         }
 
+        // Raw nodes — pass through unchanged
+        for raw in &ast.raw {
+            writeln!(out).unwrap();
+            writeln!(out, "{}", raw.text).unwrap();
+        }
+
         out
     }
 }

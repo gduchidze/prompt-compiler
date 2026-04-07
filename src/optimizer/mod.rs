@@ -118,5 +118,8 @@ fn collect_texts(ast: &PromptAst) -> Vec<String> {
     if let Some(f) = &ast.format_spec {
         texts.push(f.text.clone());
     }
+    for r in &ast.raw {
+        texts.push(r.text.clone());
+    }
     texts
 }

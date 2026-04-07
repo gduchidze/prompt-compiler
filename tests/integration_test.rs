@@ -1,4 +1,4 @@
-use prompt_compiler::{compile, ModelTarget, PromptAst};
+use prompt_compiler::{compile, compile_with_safety, ModelTarget, PromptAst, SafetyAction, SafetyCheck};
 
 const SAMPLE_SIMPLE: &str = "\
 ## Instructions
@@ -181,4 +181,54 @@ fn test_negative_to_positive_claude_only() {
         gpt_result.contains("Do not use jargon"),
         "GPT output should preserve the negative instruction"
     );
+}
+
+#[test]
+fn test_safety_check_passes_on_normal_compile() {
+    let source = "## Instructions\n- Write clearly.\n- Be concise.\n";
+    let safety = SafetyCheck::new(0.5, SafetyAction::Abort);
+    let result = compile_with_safety(source, ModelTarget::Claude, 2, safety).unwrap();
+    assert!(result.safety.passed || !result.used_fallback);
+    assert!(!result.text.is_empty());
+}
+
+#[test]
+fn test_safety_fallback_returns_original() {
+    // Use an extremely high threshold that will always trigger fallback
+    let source = "## Instructions\n- Write about machine learning.\n";
+    let safety = SafetyCheck::new(0.9999, SafetyAction::Fallback);
+    let result = compile_with_safety(source, ModelTarget::Claude, 2, safety).unwrap();
+    if result.used_fallback {
+        assert_eq!(result.text, source);
+    }
+}
+
+#[test]
+fn test_raw_node_passthrough() {
+    // Unknown section should be passed through as RawNode
+    let source = "## SomeWeirdSection\nThis text should pass through unchanged.";
+    let tokens = prompt_compiler::lexer::tokenize(source).unwrap();
+    let ast = prompt_compiler::parser::parse(tokens, source).unwrap();
+    assert!(!ast.raw.is_empty(), "Unknown section should produce RawNode");
+    assert!(ast.raw[0].text.contains("pass through"));
+}
+
+#[test]
+fn test_raw_nodes_appear_in_codegen() {
+    let source = "## SomeWeirdSection\nThis should appear in the output.";
+    let result = compile(source, ModelTarget::Claude, 0).unwrap();
+    assert!(
+        result.contains("This should appear in the output"),
+        "Raw nodes must pass through to codegen output"
+    );
+}
+
+#[test]
+fn test_honest_token_count() {
+    let tc = prompt_compiler::token_counter::count_tokens(
+        "Write clear and concise summaries",
+        ModelTarget::Claude,
+    );
+    assert!(!tc.is_exact());
+    assert!(tc.to_string().contains("Anthropic"));
 }

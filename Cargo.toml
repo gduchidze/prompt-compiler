@@ -1,6 +1,6 @@
 [package]
 name = "prompt-compiler"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "A compiler for LLM prompts — lex, parse, optimize, and generate model-specific output"
 license = "MIT"
@@ -22,3 +22,14 @@ sha2 = "0.10"
 thiserror = "2"
 anyhow = "1"
 ordered-float = "4"
+
+# Optional: neural embeddings (all-MiniLM-L6-v2, 22MB ONNX model)
+fastembed = { version = "4", optional = true }
+
+# Optional: Python bindings
+pyo3 = { version = "0.23", features = ["extension-module"], optional = true }
+
+[features]
+default = []
+fastembed = ["dep:fastembed"]
+python = ["dep:pyo3"]

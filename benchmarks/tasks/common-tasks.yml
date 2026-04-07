@@ -1,0 +1,52 @@
+# Common evaluation tasks per prompt category
+# Each task tests whether the compiled prompt preserves the original intent
+
+coding-assistant:
+  - "Write a Python function to find the longest common subsequence of two strings"
+  - "Debug this code: `for i in range(10): print(i / 0)`"
+  - "Explain the difference between async and threading in Python"
+
+customer-support:
+  - "I ordered a laptop 3 weeks ago and it still hasn't arrived. Order #12345."
+  - "How do I return a defective product?"
+  - "I was charged twice for my subscription."
+
+creative-writer:
+  - "Write a short story about a lighthouse keeper who discovers a message in a bottle"
+  - "Create a poem about the changing of seasons"
+  - "Write a dialogue between two old friends reuniting after 20 years"
+
+data-analyst:
+  - "Analyze this sales data: Q1=$1.2M, Q2=$1.5M, Q3=$1.1M, Q4=$1.8M"
+  - "What statistical test should I use to compare two group means?"
+  - "Create a SQL query to find the top 10 customers by revenue"
+
+tutor:
+  - "Explain how to solve: 3x + 7 = 22"
+  - "What is the derivative of sin(x) * e^x?"
+  - "Help me understand the Pythagorean theorem"
+
+translator:
+  - "Translate to Japanese: The cherry blossoms are beautiful this spring"
+  - "What does 'Schadenfreude' mean and how would you translate it to English?"
+  - "Translate this business email to formal French"
+
+legal-reviewer:
+  - "Review this NDA clause for potential issues: 'The receiving party shall not disclose...'"
+  - "What are the key risks in this employment contract?"
+  - "Is this liability limitation clause enforceable?"
+
+recipe-chef:
+  - "I have chicken, rice, and bell peppers. What can I make?"
+  - "How do I make a classic French omelette?"
+  - "Give me a vegetarian recipe that takes under 30 minutes"
+
+email-writer:
+  - "Write a follow-up email after a job interview"
+  - "Draft a polite email declining a meeting invitation"
+  - "Write an email to a client about a project delay"
+
+debug-helper:
+  - "Why am I getting a NullPointerException on line 42?"
+  - "My Docker container keeps restarting. Here are the logs..."
+  - "This regex isn't matching what I expect: /^[a-z]+@[a-z]+\\.com$/"

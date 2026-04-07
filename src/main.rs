@@ -4,9 +4,11 @@ use std::path::PathBuf;
 use anyhow::{Context, Result};
 use clap::Parser;
 
-use prompt_compiler::codegen::{self, ModelTarget};
 use prompt_compiler::analysis::{gptisms, quality};
+use prompt_compiler::codegen::{self, ModelTarget};
 use prompt_compiler::optimizer::{Optimizer, OptimizerOptions};
+use prompt_compiler::safety::{SafetyAction, SafetyCheck};
+use prompt_compiler::token_counter;
 use prompt_compiler::{lexer, parser};
 
 #[derive(Parser)]
@@ -53,6 +55,15 @@ struct Cli {
     /// Maximum examples to retain
     #[arg(long = "max-examples", default_value = "5")]
     max_examples: usize,
+
+    /// Safety net: minimum semantic similarity between original and compiled (0.0-1.0)
+    #[arg(long = "safety-threshold", default_value = "0.85")]
+    safety_threshold: f64,
+
+    /// Safety net action on failure
+    #[arg(long = "safety-action", default_value = "warn")]
+    #[arg(value_enum)]
+    safety_action: SafetyAction,
 }
 
 fn read_input(path: &PathBuf) -> Result<String> {
@@ -138,7 +149,25 @@ fn main() -> Result<()> {
 
     // Codegen
     let gen = codegen::for_target(cli.target);
-    let output = gen.render(&opt_result.ast);
+    let compiled = gen.render(&opt_result.ast);
+
+    // Safety check
+    let safety = SafetyCheck::new(cli.safety_threshold, cli.safety_action);
+    let docs = [source.as_str(), compiled.as_str()];
+    let embedder = prompt_compiler::embedder::TfIdfEmbedder::from_documents(&docs);
+    let safety_result = safety
+        .check(&source, &compiled, &embedder)
+        .context("Safety check failed")?;
+
+    let output = if !safety_result.passed && cli.safety_action == SafetyAction::Fallback {
+        eprintln!("⚠ {}", safety_result.warning.as_deref().unwrap_or("Semantic drift detected"));
+        source.clone()
+    } else {
+        if let Some(warning) = &safety_result.warning {
+            eprintln!("⚠ {warning}");
+        }
+        compiled
+    };
 
     write_output(&output, &cli.output)?;
 
@@ -151,6 +180,10 @@ fn main() -> Result<()> {
             &source,
         );
         eprintln!("{report}");
+
+        // Honest token count
+        let tc = token_counter::count_tokens(&output, cli.target);
+        eprintln!("Compiled: {tc}");
     }
 
     Ok(())
