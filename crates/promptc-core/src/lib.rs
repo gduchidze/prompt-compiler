@@ -5,8 +5,8 @@ pub mod error;
 pub mod lexer;
 pub mod optimizer;
 pub mod parser;
-#[cfg(feature = "python")]
-pub mod python;
+#[cfg(feature = "napi")]
+pub mod napi_bindings;
 pub mod safety;
 pub mod token_counter;
 

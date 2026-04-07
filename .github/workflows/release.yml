@@ -9,63 +9,60 @@ permissions:
   contents: read
 
 jobs:
-  python-wheels:
-    name: Build Python wheels
-    runs-on: ${{ matrix.os }}
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.settings.host }}
     strategy:
+      fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-latest
-            target: x86_64
-          - os: macos-latest
-            target: aarch64-apple-darwin
-          - os: macos-latest
+        settings:
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+          - host: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+          - host: macos-latest
             target: x86_64-apple-darwin
-          - os: windows-latest
+          - host: macos-latest
+            target: aarch64-apple-darwin
+          - host: windows-latest
             target: x86_64-pc-windows-msvc
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          python-version: '3.12'
-      - uses: PyO3/maturin-action@v1
+          targets: ${{ matrix.settings.target }}
+      - uses: actions/setup-node@v4
         with:
-          target: ${{ matrix.target }}
-          args: --release --out dist --features python
+          node-version: 20
+      - run: npm ci
+      - run: npx napi build --platform --release --target ${{ matrix.settings.target }} --cargo-cwd crates/promptc-core --cargo-flags="--features napi"
       - uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.target }}
-          path: dist
-
-  sdist:
-    name: Build source distribution
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: PyO3/maturin-action@v1
-        with:
-          command: sdist
-          args: --out dist
-      - uses: actions/upload-artifact@v4
-        with:
-          name: sdist
-          path: dist
+          name: bindings-${{ matrix.settings.target }}
+          path: '*.node'
 
   publish:
-    name: Publish to PyPI
-    needs: [python-wheels, sdist]
+    name: Publish to npm
+    needs: [build]
     runs-on: ubuntu-latest
     environment: release
     permissions:
       id-token: write
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm ci
       - uses: actions/download-artifact@v4
         with:
-          pattern: wheels-*
+          pattern: bindings-*
           merge-multiple: true
-          path: dist
-      - uses: actions/download-artifact@v4
-        with:
-          name: sdist
-          path: dist
-      - uses: pypa/gh-action-pypi-publish@release/v1
+          path: .
+      - run: npx tsc
+      - run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

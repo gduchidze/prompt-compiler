@@ -3,7 +3,8 @@ use serde::{Deserialize, Serialize};
 use crate::embedder::{cosine_similarity, Embedder};
 use crate::error::CompilerError;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "cli", derive(clap::ValueEnum))]
 pub enum SafetyAction {
     /// Emit a warning but return the compiled output
     Warn,

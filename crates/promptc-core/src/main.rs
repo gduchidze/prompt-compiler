@@ -4,12 +4,12 @@ use std::path::PathBuf;
 use anyhow::{Context, Result};
 use clap::Parser;
 
-use prompt_compiler::analysis::{gptisms, quality};
-use prompt_compiler::codegen::{self, ModelTarget};
-use prompt_compiler::optimizer::{Optimizer, OptimizerOptions};
-use prompt_compiler::safety::{SafetyAction, SafetyCheck};
-use prompt_compiler::token_counter;
-use prompt_compiler::{lexer, parser};
+use promptc_core::analysis::{gptisms, quality};
+use promptc_core::codegen::{self, ModelTarget};
+use promptc_core::optimizer::{Optimizer, OptimizerOptions};
+use promptc_core::safety::{SafetyAction, SafetyCheck};
+use promptc_core::token_counter;
+use promptc_core::{lexer, parser};
 
 #[derive(Parser)]
 #[command(name = "prompt-compiler")]
@@ -154,7 +154,7 @@ fn main() -> Result<()> {
     // Safety check
     let safety = SafetyCheck::new(cli.safety_threshold, cli.safety_action);
     let docs = [source.as_str(), compiled.as_str()];
-    let embedder = prompt_compiler::embedder::TfIdfEmbedder::from_documents(&docs);
+    let embedder = promptc_core::embedder::TfIdfEmbedder::from_documents(&docs);
     let safety_result = safety
         .check(&source, &compiled, &embedder)
         .context("Safety check failed")?;

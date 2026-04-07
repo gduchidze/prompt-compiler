@@ -1,0 +1,11 @@
+crates/
+.github/
+benchmarks/
+target/
+src/
+*.rs
+Cargo.toml
+Cargo.lock
+tsconfig.json
+.gitignore
+.git/

@@ -6,7 +6,8 @@ pub mod mistral;
 use crate::parser::ast::PromptAst;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "cli", derive(clap::ValueEnum))]
 pub enum ModelTarget {
     Claude,
     Gpt,

@@ -1,4 +1,4 @@
-use prompt_compiler::{compile, compile_with_safety, ModelTarget, PromptAst, SafetyAction, SafetyCheck};
+use promptc_core::{compile, compile_with_safety, ModelTarget, PromptAst, SafetyAction, SafetyCheck};
 
 const SAMPLE_SIMPLE: &str = "\
 ## Instructions
@@ -64,7 +64,7 @@ fn test_full_pipeline_simple_llama() {
 
 #[test]
 fn test_full_pipeline_gptisms_detected() {
-    let findings = prompt_compiler::analysis::gptisms::detect_gptisms(SAMPLE_WITH_GPTISMS);
+    let findings = promptc_core::analysis::gptisms::detect_gptisms(SAMPLE_WITH_GPTISMS);
     assert!(
         findings.len() >= 2,
         "Expected at least 2 GPT-isms, found {}",
@@ -75,13 +75,13 @@ fn test_full_pipeline_gptisms_detected() {
 #[test]
 fn test_full_pipeline_deduplication() {
     // Parse, then optimize — should remove the duplicate "cite all sources"
-    let tokens = prompt_compiler::lexer::tokenize(SAMPLE_FULL).unwrap();
-    let ast = prompt_compiler::parser::parse(tokens, SAMPLE_FULL).unwrap();
+    let tokens = promptc_core::lexer::tokenize(SAMPLE_FULL).unwrap();
+    let ast = promptc_core::parser::parse(tokens, SAMPLE_FULL).unwrap();
     let before_count = ast.instructions.len();
 
-    let optimizer = prompt_compiler::Optimizer::new(
+    let optimizer = promptc_core::Optimizer::new(
         ModelTarget::Claude,
-        prompt_compiler::OptimizerOptions {
+        promptc_core::OptimizerOptions {
             optimization_level: 2,
             ..Default::default()
         },
@@ -116,20 +116,20 @@ fn test_codegen_mistral_has_inst() {
 
 #[test]
 fn test_quality_report() {
-    let tokens = prompt_compiler::lexer::tokenize(SAMPLE_FULL).unwrap();
-    let ast = prompt_compiler::parser::parse(tokens, SAMPLE_FULL).unwrap();
+    let tokens = promptc_core::lexer::tokenize(SAMPLE_FULL).unwrap();
+    let ast = promptc_core::parser::parse(tokens, SAMPLE_FULL).unwrap();
     let before = ast.clone();
 
-    let optimizer = prompt_compiler::Optimizer::new(
+    let optimizer = promptc_core::Optimizer::new(
         ModelTarget::Claude,
-        prompt_compiler::OptimizerOptions {
+        promptc_core::OptimizerOptions {
             optimization_level: 2,
             ..Default::default()
         },
     );
     let result = optimizer.run(ast);
 
-    let report = prompt_compiler::analysis::quality::compute_quality(
+    let report = promptc_core::analysis::quality::compute_quality(
         &before,
         &result.ast,
         result.diagnostics,
@@ -146,8 +146,8 @@ fn test_quality_report() {
 
 #[test]
 fn test_roundtrip_ast_json() {
-    let tokens = prompt_compiler::lexer::tokenize(SAMPLE_FULL).unwrap();
-    let ast = prompt_compiler::parser::parse(tokens, SAMPLE_FULL).unwrap();
+    let tokens = promptc_core::lexer::tokenize(SAMPLE_FULL).unwrap();
+    let ast = promptc_core::parser::parse(tokens, SAMPLE_FULL).unwrap();
 
     let json = serde_json::to_string(&ast).unwrap();
     let deserialized: PromptAst = serde_json::from_str(&json).unwrap();
@@ -207,8 +207,8 @@ fn test_safety_fallback_returns_original() {
 fn test_raw_node_passthrough() {
     // Unknown section should be passed through as RawNode
     let source = "## SomeWeirdSection\nThis text should pass through unchanged.";
-    let tokens = prompt_compiler::lexer::tokenize(source).unwrap();
-    let ast = prompt_compiler::parser::parse(tokens, source).unwrap();
+    let tokens = promptc_core::lexer::tokenize(source).unwrap();
+    let ast = promptc_core::parser::parse(tokens, source).unwrap();
     assert!(!ast.raw.is_empty(), "Unknown section should produce RawNode");
     assert!(ast.raw[0].text.contains("pass through"));
 }
@@ -225,7 +225,7 @@ fn test_raw_nodes_appear_in_codegen() {
 
 #[test]
 fn test_honest_token_count() {
-    let tc = prompt_compiler::token_counter::count_tokens(
+    let tc = promptc_core::token_counter::count_tokens(
         "Write clear and concise summaries",
         ModelTarget::Claude,
     );

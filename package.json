@@ -1,0 +1,49 @@
+{
+  "name": "promptc",
+  "version": "0.3.0",
+  "description": "LLM prompt compiler — optimize prompts for Claude, GPT, Mistral, Llama",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "promptc": "dist/cli.js"
+  },
+  "napi": {
+    "name": "promptc-core",
+    "triples": {
+      "defaults": true,
+      "additional": [
+        "aarch64-apple-darwin",
+        "aarch64-unknown-linux-gnu",
+        "x86_64-unknown-linux-musl"
+      ]
+    }
+  },
+  "scripts": {
+    "build:rs": "napi build --platform --release --cargo-cwd crates/promptc-core --cargo-flags=\"--features napi\"",
+    "build:ts": "tsc",
+    "build": "npm run build:rs && npm run build:ts",
+    "test": "vitest run",
+    "test:rust": "cargo test --workspace --manifest-path crates/promptc-core/Cargo.toml"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "@hono/node-server": "^1.0.0",
+    "chalk": "^5.3.0",
+    "commander": "^12.0.0",
+    "hono": "^4.0.0"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^2.18.0",
+    "@types/node": "^25.5.2",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  },
+  "files": [
+    "dist",
+    "*.node"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}

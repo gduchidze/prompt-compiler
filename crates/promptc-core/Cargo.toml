@@ -1,0 +1,43 @@
+[package]
+name = "promptc-core"
+version = "0.3.0"
+edition = "2021"
+description = "A compiler for LLM prompts — lex, parse, optimize, and generate model-specific output"
+license = "MIT"
+
+[[bin]]
+name = "prompt-compiler"
+path = "src/main.rs"
+required-features = ["cli"]
+
+[lib]
+name = "promptc_core"
+path = "src/lib.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+regex = "1"
+sha2 = "0.10"
+thiserror = "2"
+anyhow = "1"
+ordered-float = "4"
+
+# napi-rs bindings for Node.js (optional, enabled by napi feature)
+napi = { version = "2", features = ["napi9", "serde-json"], optional = true }
+napi-derive = { version = "2", optional = true }
+
+# Optional: CLI (clap)
+clap = { version = "4", features = ["derive"], optional = true }
+
+# Optional: neural embeddings (all-MiniLM-L6-v2, 22MB ONNX model)
+fastembed = { version = "4", optional = true }
+
+[build-dependencies]
+napi-build = "2"
+
+[features]
+default = []
+napi = ["dep:napi", "dep:napi-derive"]
+cli = ["dep:clap"]
+fastembed = ["dep:fastembed"]
