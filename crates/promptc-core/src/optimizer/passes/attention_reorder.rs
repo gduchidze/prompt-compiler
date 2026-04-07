@@ -76,23 +76,35 @@ mod tests {
         ast.instructions.push(InstructionNode {
             id: NodeId(0),
             text: "Low priority task".into(),
-            verb: String::new(), object: String::new(),
-            polarity: Polarity::Positive, priority: Priority::Low,
-            span: TextSpan { start: 0, end: 0 }, token_count: 3, embedding: None,
+            verb: String::new(),
+            object: String::new(),
+            polarity: Polarity::Positive,
+            priority: Priority::Low,
+            span: TextSpan { start: 0, end: 0 },
+            token_count: 3,
+            embedding: None,
         });
         ast.instructions.push(InstructionNode {
             id: NodeId(1),
             text: "Critical task".into(),
-            verb: String::new(), object: String::new(),
-            polarity: Polarity::Positive, priority: Priority::Critical,
-            span: TextSpan { start: 0, end: 0 }, token_count: 2, embedding: None,
+            verb: String::new(),
+            object: String::new(),
+            polarity: Polarity::Positive,
+            priority: Priority::Critical,
+            span: TextSpan { start: 0, end: 0 },
+            token_count: 2,
+            embedding: None,
         });
 
         let embedder = TfIdfEmbedder::from_documents(&[]);
         let ctx = PassContext {
-            target: ModelTarget::Claude, opt_level: 2, embedder: &embedder,
-            token_counter: &WhitespaceCounter, similarity_threshold: 0.85,
-            context_relevance_threshold: 0.1, max_examples: 5,
+            target: ModelTarget::Claude,
+            opt_level: 2,
+            embedder: &embedder,
+            token_counter: &WhitespaceCounter,
+            similarity_threshold: 0.85,
+            context_relevance_threshold: 0.1,
+            max_examples: 5,
         };
 
         let result = AttentionAwareReorder.run(ast, &ctx);

@@ -39,7 +39,9 @@ impl OptimizerPass for ExampleDiversitySelection {
                     .map(|j| cosine_similarity(&embeddings[b], &embeddings[j]))
                     .sum::<f32>()
                     / (n - 1).max(1) as f32;
-                avg_a.partial_cmp(&avg_b).unwrap_or(std::cmp::Ordering::Equal)
+                avg_a
+                    .partial_cmp(&avg_b)
+                    .unwrap_or(std::cmp::Ordering::Equal)
             })
             .unwrap();
 

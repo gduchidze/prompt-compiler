@@ -1,4 +1,6 @@
-use promptc_core::{compile, compile_with_safety, ModelTarget, PromptAst, SafetyAction, SafetyCheck};
+use promptc_core::{
+    compile, compile_with_safety, ModelTarget, PromptAst, SafetyAction, SafetyCheck,
+};
 
 const SAMPLE_SIMPLE: &str = "\
 ## Instructions
@@ -99,7 +101,10 @@ fn test_full_pipeline_deduplication() {
 fn test_codegen_claude_has_xml() {
     let result = compile(SAMPLE_FULL, ModelTarget::Claude, 2).unwrap();
     assert!(result.contains("<persona>"), "Missing <persona> tag");
-    assert!(result.contains("<instructions>"), "Missing <instructions> tag");
+    assert!(
+        result.contains("<instructions>"),
+        "Missing <instructions> tag"
+    );
 }
 
 #[test]
@@ -167,9 +172,19 @@ fn test_o0_no_changes() {
 #[test]
 fn test_negative_to_positive_claude_only() {
     // Claude should rewrite negatives
-    let claude_result = compile("## Instructions\n- Do not use jargon.\n", ModelTarget::Claude, 2).unwrap();
+    let claude_result = compile(
+        "## Instructions\n- Do not use jargon.\n",
+        ModelTarget::Claude,
+        2,
+    )
+    .unwrap();
     // GPT should preserve negatives
-    let gpt_result = compile("## Instructions\n- Do not use jargon.\n", ModelTarget::Gpt, 2).unwrap();
+    let gpt_result = compile(
+        "## Instructions\n- Do not use jargon.\n",
+        ModelTarget::Gpt,
+        2,
+    )
+    .unwrap();
 
     // Claude should have rewritten the negative
     assert!(
@@ -209,7 +224,10 @@ fn test_raw_node_passthrough() {
     let source = "## SomeWeirdSection\nThis text should pass through unchanged.";
     let tokens = promptc_core::lexer::tokenize(source).unwrap();
     let ast = promptc_core::parser::parse(tokens, source).unwrap();
-    assert!(!ast.raw.is_empty(), "Unknown section should produce RawNode");
+    assert!(
+        !ast.raw.is_empty(),
+        "Unknown section should produce RawNode"
+    );
     assert!(ast.raw[0].text.contains("pass through"));
 }
 

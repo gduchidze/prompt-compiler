@@ -29,9 +29,7 @@ impl FastEmbedder {
 
     pub fn embed_batch(&self, texts: &[&str]) -> Vec<Vec<f32>> {
         let texts: Vec<String> = texts.iter().map(|s| s.to_string()).collect();
-        self.model
-            .embed(texts, None)
-            .unwrap_or_default()
+        self.model.embed(texts, None).unwrap_or_default()
     }
 }
 

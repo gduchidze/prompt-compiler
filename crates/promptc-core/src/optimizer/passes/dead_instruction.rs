@@ -36,8 +36,7 @@ impl OptimizerPass for DeadInstructionElimination {
                 if dead.contains(&ast.instructions[j].id) {
                     continue;
                 }
-                let sim =
-                    crate::embedder::cosine_similarity(&embeddings[i], &embeddings[j]);
+                let sim = crate::embedder::cosine_similarity(&embeddings[i], &embeddings[j]);
                 if sim > ctx.similarity_threshold {
                     // Keep higher priority; if equal, keep shorter
                     let remove = if ast.instructions[i].priority > ast.instructions[j].priority {
@@ -77,9 +76,9 @@ impl OptimizerPass for DeadInstructionElimination {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::codegen::ModelTarget;
     use crate::embedder::tfidf::TfIdfEmbedder;
     use crate::token_counter::WhitespaceCounter;
-    use crate::codegen::ModelTarget;
 
     fn make_ctx(embedder: &dyn crate::embedder::Embedder) -> PassContext<'_> {
         PassContext {
@@ -110,9 +109,21 @@ mod tests {
     #[test]
     fn test_removes_near_duplicate() {
         let mut ast = PromptAst::empty("test".into());
-        ast.instructions.push(make_instruction(0, "Write clear and concise summaries of the content", Priority::Medium));
-        ast.instructions.push(make_instruction(1, "Write concise and clear summaries of the content", Priority::Medium));
-        ast.instructions.push(make_instruction(2, "Explain quantum physics in detail", Priority::Medium));
+        ast.instructions.push(make_instruction(
+            0,
+            "Write clear and concise summaries of the content",
+            Priority::Medium,
+        ));
+        ast.instructions.push(make_instruction(
+            1,
+            "Write concise and clear summaries of the content",
+            Priority::Medium,
+        ));
+        ast.instructions.push(make_instruction(
+            2,
+            "Explain quantum physics in detail",
+            Priority::Medium,
+        ));
 
         let docs: Vec<&str> = ast.instructions.iter().map(|i| i.text.as_str()).collect();
         let embedder = TfIdfEmbedder::from_documents(&docs);
@@ -120,15 +131,27 @@ mod tests {
 
         let result = DeadInstructionElimination.run(ast, &ctx);
         // The two similar instructions should be reduced
-        assert!(result.ast.instructions.len() <= 2, "got {}", result.ast.instructions.len());
+        assert!(
+            result.ast.instructions.len() <= 2,
+            "got {}",
+            result.ast.instructions.len()
+        );
         assert!(result.changes_made);
     }
 
     #[test]
     fn test_keeps_dissimilar() {
         let mut ast = PromptAst::empty("test".into());
-        ast.instructions.push(make_instruction(0, "Write clear summaries about cats", Priority::Medium));
-        ast.instructions.push(make_instruction(1, "Explain quantum physics thoroughly", Priority::Medium));
+        ast.instructions.push(make_instruction(
+            0,
+            "Write clear summaries about cats",
+            Priority::Medium,
+        ));
+        ast.instructions.push(make_instruction(
+            1,
+            "Explain quantum physics thoroughly",
+            Priority::Medium,
+        ));
 
         let docs: Vec<&str> = ast.instructions.iter().map(|i| i.text.as_str()).collect();
         let embedder = TfIdfEmbedder::from_documents(&docs);
@@ -142,8 +165,16 @@ mod tests {
     #[test]
     fn test_priority_tiebreak() {
         let mut ast = PromptAst::empty("test".into());
-        ast.instructions.push(make_instruction(0, "Write clear concise summaries of content", Priority::High));
-        ast.instructions.push(make_instruction(1, "Write concise clear summaries of content", Priority::Medium));
+        ast.instructions.push(make_instruction(
+            0,
+            "Write clear concise summaries of content",
+            Priority::High,
+        ));
+        ast.instructions.push(make_instruction(
+            1,
+            "Write concise clear summaries of content",
+            Priority::Medium,
+        ));
 
         let docs: Vec<&str> = ast.instructions.iter().map(|i| i.text.as_str()).collect();
         let embedder = TfIdfEmbedder::from_documents(&docs);

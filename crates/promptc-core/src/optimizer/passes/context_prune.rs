@@ -76,9 +76,13 @@ mod tests {
         ast.instructions.push(InstructionNode {
             id: NodeId(0),
             text: "Write about machine learning algorithms".into(),
-            verb: "write".into(), object: "machine learning algorithms".into(),
-            polarity: Polarity::Positive, priority: Priority::Medium,
-            span: TextSpan { start: 0, end: 0 }, token_count: 5, embedding: None,
+            verb: "write".into(),
+            object: "machine learning algorithms".into(),
+            polarity: Polarity::Positive,
+            priority: Priority::Medium,
+            span: TextSpan { start: 0, end: 0 },
+            token_count: 5,
+            embedding: None,
         });
         ast.context.push(ContextNode {
             id: NodeId(1),
@@ -97,13 +101,21 @@ mod tests {
 
         let embedder = TfIdfEmbedder::from_documents(&[]);
         let ctx = PassContext {
-            target: ModelTarget::Claude, opt_level: 2, embedder: &embedder,
-            token_counter: &WhitespaceCounter, similarity_threshold: 0.85,
-            context_relevance_threshold: 0.1, max_examples: 5,
+            target: ModelTarget::Claude,
+            opt_level: 2,
+            embedder: &embedder,
+            token_counter: &WhitespaceCounter,
+            similarity_threshold: 0.85,
+            context_relevance_threshold: 0.1,
+            max_examples: 5,
         };
 
         let result = ContextRelevancePruning.run(ast, &ctx);
         // The relevant context should survive, irrelevant may be pruned
-        assert!(result.ast.context.iter().any(|c| c.text.contains("Machine learning")));
+        assert!(result
+            .ast
+            .context
+            .iter()
+            .any(|c| c.text.contains("Machine learning")));
     }
 }

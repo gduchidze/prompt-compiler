@@ -14,7 +14,9 @@ pub enum CompilerError {
     #[error("Codegen error for target '{target}': {reason}")]
     CodegenError { target: String, reason: String },
 
-    #[error("Semantic drift detected: similarity {similarity:.2} is below threshold {threshold:.2}")]
+    #[error(
+        "Semantic drift detected: similarity {similarity:.2} is below threshold {threshold:.2}"
+    )]
     SemanticDrift { similarity: f64, threshold: f64 },
 
     #[error("IO error: {0}")]

@@ -62,7 +62,12 @@ fn compute_instruction_clarity(ast: &PromptAst) -> f64 {
     let total = ast.instructions.len() as f64;
 
     // % with non-empty verb
-    let has_verb = ast.instructions.iter().filter(|i| !i.verb.is_empty()).count() as f64 / total;
+    let has_verb = ast
+        .instructions
+        .iter()
+        .filter(|i| !i.verb.is_empty())
+        .count() as f64
+        / total;
 
     // % with Positive polarity
     let positive = ast
@@ -108,9 +113,9 @@ fn compute_structural_improvement(ast: &PromptAst, diagnostics: &[PassDiagnostic
     }
 
     // No contradictions
-    let has_contradictions = diagnostics.iter().any(|d| {
-        matches!(d, PassDiagnostic::ContradictionFound { .. })
-    });
+    let has_contradictions = diagnostics
+        .iter()
+        .any(|d| matches!(d, PassDiagnostic::ContradictionFound { .. }));
     if !has_contradictions {
         score += 0.2;
     }
@@ -147,7 +152,11 @@ impl std::fmt::Display for QualityReport {
         if !self.gptism_findings.is_empty() {
             writeln!(f, "\nGPT-ism findings:")?;
             for finding in &self.gptism_findings {
-                writeln!(f, "  [{:?}] '{}' — {}", finding.severity, finding.found, finding.suggestion)?;
+                writeln!(
+                    f,
+                    "  [{:?}] '{}' — {}",
+                    finding.severity, finding.found, finding.suggestion
+                )?;
             }
         }
 
@@ -160,13 +169,28 @@ impl std::fmt::Display for QualityReport {
                         writeln!(f, "  - Removed: '{}' ({})", truncate(text, 50), reason)?;
                     }
                     PassDiagnostic::ConvertedPolarity { before, after } => {
-                        writeln!(f, "  - Rewritten: '{}' -> '{}'", truncate(before, 40), truncate(after, 40))?;
+                        writeln!(
+                            f,
+                            "  - Rewritten: '{}' -> '{}'",
+                            truncate(before, 40),
+                            truncate(after, 40)
+                        )?;
                     }
                     PassDiagnostic::PrunedContext { text, relevance } => {
-                        writeln!(f, "  - Pruned context: '{}' (relevance={:.2})", truncate(text, 40), relevance)?;
+                        writeln!(
+                            f,
+                            "  - Pruned context: '{}' (relevance={:.2})",
+                            truncate(text, 40),
+                            relevance
+                        )?;
                     }
                     PassDiagnostic::ContradictionResolved { kept, removed } => {
-                        writeln!(f, "  - Contradiction: kept '{}', removed '{}'", truncate(kept, 30), truncate(removed, 30))?;
+                        writeln!(
+                            f,
+                            "  - Contradiction: kept '{}', removed '{}'",
+                            truncate(kept, 30),
+                            truncate(removed, 30)
+                        )?;
                     }
                     _ => {}
                 }

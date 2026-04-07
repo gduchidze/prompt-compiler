@@ -37,7 +37,7 @@ impl OptimizerPass for ContradictionResolver {
             }
         }
 
-        for (_key, indices) in &groups {
+        for indices in groups.values() {
             if indices.len() < 2 {
                 continue;
             }
@@ -95,8 +95,8 @@ impl OptimizerPass for ContradictionResolver {
 mod tests {
     use super::*;
     use crate::codegen::ModelTarget;
-    use crate::token_counter::WhitespaceCounter;
     use crate::embedder::tfidf::TfIdfEmbedder;
+    use crate::token_counter::WhitespaceCounter;
 
     fn make_ctx(embedder: &dyn crate::embedder::Embedder) -> PassContext<'_> {
         PassContext {

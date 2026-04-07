@@ -16,10 +16,7 @@ impl TokenCounter for WhitespaceCounter {
 #[derive(Debug, Clone)]
 pub enum TokenCount {
     Exact(usize),
-    Approximate {
-        count: usize,
-        note: &'static str,
-    },
+    Approximate { count: usize, note: &'static str },
 }
 
 impl TokenCount {

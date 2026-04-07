@@ -13,6 +13,7 @@ required-features = ["cli"]
 [lib]
 name = "promptc_core"
 path = "src/lib.rs"
+crate-type = ["cdylib", "lib"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

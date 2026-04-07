@@ -160,7 +160,13 @@ fn main() -> Result<()> {
         .context("Safety check failed")?;
 
     let output = if !safety_result.passed && cli.safety_action == SafetyAction::Fallback {
-        eprintln!("⚠ {}", safety_result.warning.as_deref().unwrap_or("Semantic drift detected"));
+        eprintln!(
+            "⚠ {}",
+            safety_result
+                .warning
+                .as_deref()
+                .unwrap_or("Semantic drift detected")
+        );
         source.clone()
     } else {
         if let Some(warning) = &safety_result.warning {

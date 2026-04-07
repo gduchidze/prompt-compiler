@@ -10,18 +10,57 @@ use crate::token_counter::{TokenCounter, WhitespaceCounter};
 use regex::Regex;
 
 const ACTION_VERBS: &[&str] = &[
-    "write", "generate", "create", "produce", "analyze", "summarize", "explain", "describe",
-    "list", "extract", "translate", "classify", "identify", "compare", "evaluate", "suggest",
-    "provide", "return", "output", "format", "avoid", "do", "use", "include", "exclude", "ensure",
-    "maintain", "follow", "apply", "consider", "respond", "give", "make", "keep", "check",
-    "review", "act", "be", "think", "speak", "answer", "reply", "help",
+    "write",
+    "generate",
+    "create",
+    "produce",
+    "analyze",
+    "summarize",
+    "explain",
+    "describe",
+    "list",
+    "extract",
+    "translate",
+    "classify",
+    "identify",
+    "compare",
+    "evaluate",
+    "suggest",
+    "provide",
+    "return",
+    "output",
+    "format",
+    "avoid",
+    "do",
+    "use",
+    "include",
+    "exclude",
+    "ensure",
+    "maintain",
+    "follow",
+    "apply",
+    "consider",
+    "respond",
+    "give",
+    "make",
+    "keep",
+    "check",
+    "review",
+    "act",
+    "be",
+    "think",
+    "speak",
+    "answer",
+    "reply",
+    "help",
 ];
 
 static NEGATIVE_RE: OnceLock<Regex> = OnceLock::new();
 
 fn negative_regex() -> &'static Regex {
-    NEGATIVE_RE
-        .get_or_init(|| Regex::new(r"(?i)\b(do\s+not|don'?t|never|avoid|refrain\s+from|without|not)\b").unwrap())
+    NEGATIVE_RE.get_or_init(|| {
+        Regex::new(r"(?i)\b(do\s+not|don'?t|never|avoid|refrain\s+from|without|not)\b").unwrap()
+    })
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -40,14 +79,22 @@ fn classify_section_header(text: &str) -> SectionKind {
     let lower = lower.trim_start_matches('#').trim();
     let lower = lower.trim_start_matches('[').trim_end_matches(']').trim();
 
-    if lower.starts_with("persona") || lower.starts_with("role") || lower.starts_with("identity")
-    {
+    if lower.starts_with("persona") || lower.starts_with("role") || lower.starts_with("identity") {
         SectionKind::Persona
-    } else if lower.starts_with("instruction") || lower.starts_with("task") || lower.starts_with("objective") {
+    } else if lower.starts_with("instruction")
+        || lower.starts_with("task")
+        || lower.starts_with("objective")
+    {
         SectionKind::Instructions
-    } else if lower.starts_with("constraint") || lower.starts_with("rule") || lower.starts_with("limitation") {
+    } else if lower.starts_with("constraint")
+        || lower.starts_with("rule")
+        || lower.starts_with("limitation")
+    {
         SectionKind::Constraints
-    } else if lower.starts_with("context") || lower.starts_with("background") || lower.starts_with("information") {
+    } else if lower.starts_with("context")
+        || lower.starts_with("background")
+        || lower.starts_with("information")
+    {
         SectionKind::Context
     } else if lower.starts_with("example") {
         SectionKind::Examples
@@ -68,7 +115,14 @@ fn detect_polarity(text: &str) -> Polarity {
 
 fn detect_priority(text: &str) -> Priority {
     let lower = text.to_lowercase();
-    let critical_words = ["must", "critical", "always", "required", "guarantee", "never"];
+    let critical_words = [
+        "must",
+        "critical",
+        "always",
+        "required",
+        "guarantee",
+        "never",
+    ];
     let high_words = ["important", "ensure", "should", "strongly"];
     let low_words = ["optionally", "if possible", "when convenient", "feel free"];
 
@@ -99,7 +153,7 @@ fn extract_verb_object(text: &str) -> (String, String) {
         let clean = lower.trim_matches(|c: char| !c.is_alphabetic());
         if ACTION_VERBS.contains(&clean) {
             let object = words[i + 1..].join(" ");
-            let object = object.trim_end_matches(|c: char| c == '.' || c == ',' || c == '!');
+            let object = object.trim_end_matches(['.', ',', '!']);
             return (clean.to_string(), object.to_string());
         }
     }
@@ -322,13 +376,25 @@ pub fn parse(tokens: Vec<Token>, source: &str) -> Result<PromptAst, CompilerErro
     }
 
     // Compute total tokens
-    let total: usize = ast.instructions.iter().map(|n| n.token_count).sum::<usize>()
+    let total: usize = ast
+        .instructions
+        .iter()
+        .map(|n| n.token_count)
+        .sum::<usize>()
         + ast.constraints.iter().map(|n| n.token_count).sum::<usize>()
         + ast.context.iter().map(|n| n.token_count).sum::<usize>()
         + ast.examples.iter().map(|n| n.token_count).sum::<usize>()
         + ast.raw.iter().map(|n| n.token_count).sum::<usize>()
-        + ast.persona.as_ref().map(|p| state.counter.count(&p.text)).unwrap_or(0)
-        + ast.format_spec.as_ref().map(|f| state.counter.count(&f.text)).unwrap_or(0);
+        + ast
+            .persona
+            .as_ref()
+            .map(|p| state.counter.count(&p.text))
+            .unwrap_or(0)
+        + ast
+            .format_spec
+            .as_ref()
+            .map(|f| state.counter.count(&f.text))
+            .unwrap_or(0);
 
     ast.metadata.total_tokens = total;
     ast.metadata.parse_warnings = state.warnings;
@@ -344,12 +410,22 @@ fn parse_examples(tokens: &[&Token], ast: &mut PromptAst, state: &mut ParserStat
         let lower = text.to_lowercase();
 
         if lower.starts_with("input:") || lower.starts_with("user:") {
-            let content = text.splitn(2, ':').nth(1).unwrap_or("").trim().to_string();
+            let content = text
+                .split_once(':')
+                .map(|x| x.1)
+                .unwrap_or("")
+                .trim()
+                .to_string();
             input = Some(content);
         } else if (lower.starts_with("output:") || lower.starts_with("assistant:"))
             && input.is_some()
         {
-            let content = text.splitn(2, ':').nth(1).unwrap_or("").trim().to_string();
+            let content = text
+                .split_once(':')
+                .map(|x| x.1)
+                .unwrap_or("")
+                .trim()
+                .to_string();
             let inp = input.take().unwrap();
             let token_count = state.counter.count(&inp) + state.counter.count(&content);
 
@@ -366,7 +442,7 @@ fn parse_examples(tokens: &[&Token], ast: &mut PromptAst, state: &mut ParserStat
             });
         } else if input.is_none() && token.kind == TokenKind::ExampleStart {
             // example label like "Example 1:" — check if it has content after colon
-            if let Some(content) = text.splitn(2, ':').nth(1) {
+            if let Some(content) = text.split_once(':').map(|x| x.1) {
                 let content = content.trim();
                 if !content.is_empty() {
                     input = Some(content.to_string());
@@ -430,7 +506,7 @@ fn heuristic_classify(tokens: Vec<&Token>) -> Vec<(SectionKind, Vec<&Token>)> {
 
 fn clean_text(text: &str) -> String {
     let trimmed = text.trim();
-    let trimmed = trimmed.trim_start_matches(|c: char| c == '-' || c == '*' || c == '•');
+    let trimmed = trimmed.trim_start_matches(['-', '*', '\u{2022}']);
     let trimmed = trimmed.trim();
     // Strip leading numbered list markers
     let trimmed = if let Some(rest) = trimmed.strip_prefix(|c: char| c.is_ascii_digit()) {

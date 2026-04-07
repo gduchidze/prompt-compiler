@@ -3,10 +3,10 @@ pub mod codegen;
 pub mod embedder;
 pub mod error;
 pub mod lexer;
-pub mod optimizer;
-pub mod parser;
 #[cfg(feature = "napi")]
 pub mod napi_bindings;
+pub mod optimizer;
+pub mod parser;
 pub mod safety;
 pub mod token_counter;
 
@@ -28,8 +28,7 @@ pub struct CompileOutput {
 /// Lexes, parses, optimizes, generates model-specific output, and runs
 /// the safety net to detect semantic drift.
 pub fn compile(source: &str, target: ModelTarget, opt_level: u8) -> Result<String, CompilerError> {
-    compile_with_safety(source, target, opt_level, SafetyCheck::default())
-        .map(|out| out.text)
+    compile_with_safety(source, target, opt_level, SafetyCheck::default()).map(|out| out.text)
 }
 
 /// Compile with explicit safety check configuration.

@@ -7,8 +7,8 @@ use crate::parser::ast::PromptAst;
 use crate::token_counter::WhitespaceCounter;
 use pass::{OptimizerPass, PassContext, PassDiagnostic};
 use passes::{
-    attention_reorder::AttentionAwareReorder, contradiction::ContradictionResolver,
-    context_prune::ContextRelevancePruning, dead_instruction::DeadInstructionElimination,
+    attention_reorder::AttentionAwareReorder, context_prune::ContextRelevancePruning,
+    contradiction::ContradictionResolver, dead_instruction::DeadInstructionElimination,
     example_diversity::ExampleDiversitySelection, negative_to_positive::NegativeToPositive,
     redundancy::RedundancyElimination,
 };

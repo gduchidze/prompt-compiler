@@ -18,7 +18,10 @@ fn negative_regex() -> &'static Regex {
 
 fn priority_regex() -> &'static Regex {
     PRIORITY_RE.get_or_init(|| {
-        Regex::new(r"(?i)\b(must|always|critical|important|required|ensure|guarantee|you\s+should)\b").unwrap()
+        Regex::new(
+            r"(?i)\b(must|always|critical|important|required|ensure|guarantee|you\s+should)\b",
+        )
+        .unwrap()
     })
 }
 
@@ -54,11 +57,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CompilerError> {
                         rule.kind.clone()
                     };
 
-                    tokens.push(Token {
-                        kind,
-                        text,
-                        span,
-                    });
+                    tokens.push(Token { kind, text, span });
 
                     cursor += m.end();
                     matched = true;
@@ -109,7 +108,10 @@ mod tests {
     fn test_lex_bullet_list() {
         let input = "- First item\n- Second item\n- Third item";
         let tokens = tokenize(input).unwrap();
-        let bullets: Vec<_> = tokens.iter().filter(|t| t.kind == TokenKind::Bullet).collect();
+        let bullets: Vec<_> = tokens
+            .iter()
+            .filter(|t| t.kind == TokenKind::Bullet)
+            .collect();
         assert_eq!(bullets.len(), 3);
     }
 

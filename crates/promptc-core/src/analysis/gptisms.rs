@@ -156,6 +156,10 @@ mod tests {
         let findings = detect_gptisms(
             "You are a helpful assistant. Provide clear, concise answers to user questions.",
         );
-        assert!(findings.is_empty(), "Unexpected findings: {:?}", findings.iter().map(|f| &f.found).collect::<Vec<_>>());
+        assert!(
+            findings.is_empty(),
+            "Unexpected findings: {:?}",
+            findings.iter().map(|f| &f.found).collect::<Vec<_>>()
+        );
     }
 }

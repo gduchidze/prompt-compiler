@@ -61,14 +61,14 @@ impl OptimizerPass for RedundancyElimination {
 
             for ctx_node in &ast.context {
                 let norm = normalize_text(&ctx_node.text);
-                if seen.contains_key(&norm) {
+                if let std::collections::hash_map::Entry::Vacant(e) = seen.entry(norm) {
+                    e.insert(ctx_node.id);
+                } else {
                     to_remove.push(ctx_node.id);
                     diagnostics.push(PassDiagnostic::PrunedContext {
                         text: ctx_node.text.clone(),
                         relevance: ctx_node.relevance_score,
                     });
-                } else {
-                    seen.insert(norm, ctx_node.id);
                 }
             }
 
@@ -97,23 +97,35 @@ mod tests {
         ast.instructions.push(InstructionNode {
             id: NodeId(0),
             text: "Write clear summaries.".into(),
-            verb: "write".into(), object: "clear summaries".into(),
-            polarity: Polarity::Positive, priority: Priority::Medium,
-            span: TextSpan { start: 0, end: 0 }, token_count: 3, embedding: None,
+            verb: "write".into(),
+            object: "clear summaries".into(),
+            polarity: Polarity::Positive,
+            priority: Priority::Medium,
+            span: TextSpan { start: 0, end: 0 },
+            token_count: 3,
+            embedding: None,
         });
         ast.instructions.push(InstructionNode {
             id: NodeId(1),
             text: "Write clear summaries.".into(),
-            verb: "write".into(), object: "clear summaries".into(),
-            polarity: Polarity::Positive, priority: Priority::Medium,
-            span: TextSpan { start: 0, end: 0 }, token_count: 3, embedding: None,
+            verb: "write".into(),
+            object: "clear summaries".into(),
+            polarity: Polarity::Positive,
+            priority: Priority::Medium,
+            span: TextSpan { start: 0, end: 0 },
+            token_count: 3,
+            embedding: None,
         });
 
         let embedder = TfIdfEmbedder::from_documents(&[]);
         let ctx = PassContext {
-            target: ModelTarget::Claude, opt_level: 2, embedder: &embedder,
-            token_counter: &WhitespaceCounter, similarity_threshold: 0.85,
-            context_relevance_threshold: 0.1, max_examples: 5,
+            target: ModelTarget::Claude,
+            opt_level: 2,
+            embedder: &embedder,
+            token_counter: &WhitespaceCounter,
+            similarity_threshold: 0.85,
+            context_relevance_threshold: 0.1,
+            max_examples: 5,
         };
 
         let result = RedundancyElimination.run(ast, &ctx);
